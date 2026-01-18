@@ -1,0 +1,6 @@
+build: 
+  parallel-workers: 4  
+  mixin:    
+    - rel-with-deb-info    
+    - compile-commands
+  symlink-install: True
