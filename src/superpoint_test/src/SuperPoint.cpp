@@ -176,7 +176,6 @@ std::vector<torch::Tensor> SuperPoint::forward(torch::Tensor x) {
 
   
 
-//Funtctions for 
 void NMS(cv::Mat det, cv::Mat conf, cv::Mat desc, std::vector<cv::KeyPoint>& pts, cv::Mat& descriptors,
         int border, int dist_thresh, int img_width, int img_height);
 void NMS2(std::vector<cv::KeyPoint> det, cv::Mat conf, std::vector<cv::KeyPoint>& pts,
@@ -187,7 +186,8 @@ void NMS2(std::vector<cv::KeyPoint> det, cv::Mat conf, std::vector<cv::KeyPoint>
 SPDetector::SPDetector(std::shared_ptr<SuperPoint> _model) : model(_model) 
 {
 }
-//
+
+//forward pass to get point heatmap and descriptor tensors
 void SPDetector::detect(cv::Mat &img, bool cuda)
 {
     auto x = torch::from_blob(img.clone().data, {1, 1, img.rows, img.cols}, torch::kByte);
@@ -196,6 +196,8 @@ void SPDetector::detect(cv::Mat &img, bool cuda)
     //Device selection:
     bool use_cuda = cuda && torch::cuda::is_available();
     torch::DeviceType device_type;
+
+    std::cout << "CUDA available: " << (torch::cuda::is_available() ? "true" : "false") << std::endl;
     if (use_cuda)
         device_type = torch::kCUDA;
     else
@@ -213,7 +215,7 @@ void SPDetector::detect(cv::Mat &img, bool cuda)
 
 }
 
-
+//Get keypoints from probability heatmap and optional NMS
 void SPDetector::getKeyPoints(float threshold, int iniX, int maxX, int iniY, int maxY, std::vector<cv::KeyPoint> &keypoints, bool nms)
 {
     auto prob = mProb.slice(0, iniY, maxY).slice(1, iniX, maxX);  // [h, w]

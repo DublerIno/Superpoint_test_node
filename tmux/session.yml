@@ -16,22 +16,15 @@ windows:
       panes:
         #- ros2 run image_tools cam2image --ros-args -p device_id:=0
         # Pick ONE of the following lines (comment out the other):
-        - source ../install/setup.bash; ros2 run v4l2_camera v4l2_camera_node --ros-args -r image_raw:=/camera/image -p image_size:="[480,360]"
+        - ros2 run v4l2_camera v4l2_camera_node --ros-args -r image_raw:=/camera/image -p image_size:="[480,360]"
         # - ros2 run usb_cam usb_cam_node_exe --ros-args -r image_raw:=/camera/image
 
   - superpoint:
-      layout: tiled
-      panes:
-        - >
-          ros2 run superpoint_test superpoint_test
-          --ros-args
-          -p weights_path:=/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin
-          -p image_topic:=camera/image
-          -p threshold:=0.015
-          -p nms:=true
-          -p use_cuda:=true
-          =-p image_size:="[160,120]"
+    layout: tiled
+    panes:
+      - ros2 run superpoint_test superpoint_test --ros-args -p weights_path:=/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin -p image_topic:=camera/image -p threshold:=0.015 -p nms:=true -p use_cuda:=true -p image_size:="[160,120]"
 
+      #source ../install/setup.bash &&
   - rviz:
       layout: tiled
       panes:

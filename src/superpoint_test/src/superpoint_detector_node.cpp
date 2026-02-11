@@ -22,7 +22,8 @@ public:
     threshold_    = declare_parameter<double>("threshold", 0.015);
     do_nms_       = declare_parameter<bool>("nms", true);
     use_cuda_     = declare_parameter<bool>("use_cuda", false);
-    img_size_     = declare_parameter<std::vector<int>>("image_size", {160, 120});
+    img_size_ = declare_parameter<std::vector<int64_t>>("image_size",std::vector<int64_t>{160, 120}); // width, height
+
 
     if (weights_path_.empty()) {
       RCLCPP_ERROR(get_logger(), "Param 'weights_path' is empty. Set it to a libtorch-loadable weight file.");
@@ -48,6 +49,8 @@ public:
 
     // Pick device ONCE
     device_ = torch::kCPU;
+    bool cuda_available_ = torch::cuda::is_available();
+    RCLCPP_INFO(get_logger(), "CUDA available: %s", cuda_available_ ? "true" : "false");
     if (use_cuda_ && torch::cuda::is_available()) {
       device_ = torch::kCUDA;
       RCLCPP_INFO(get_logger(), "Using CUDA");
@@ -120,7 +123,7 @@ private:
       );
       const auto end = std::chrono::high_resolution_clock::now();
 
-      RCLCPP_INFO(get_logger(), "SuperPoint detected %zu keypoints in %.1f ms",
+      RCLCPP_INFO(get_logger(), "detect and getkeypoint -  %zu keypoints in %.1f ms",
         kpts.size(),
         std::chrono::duration<double, std::milli>(end - start).count()
       );
@@ -151,11 +154,6 @@ private:
       RCLCPP_ERROR(get_logger(), "Error: %s", e.what());
     }
     
-
-
-
-
-
   }
 
   std::string weights_path_;
@@ -163,7 +161,8 @@ private:
   double threshold_;
   bool do_nms_;
   bool use_cuda_;
-  std::vector<int> img_size_;
+  std::vector<int64_t> img_size_;
+  
 
   torch::Device device_{torch::kCPU};
 

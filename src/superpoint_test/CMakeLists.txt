@@ -22,15 +22,17 @@ src/superpoint_detector_node.cpp
 src/SuperPoint.cpp
 )
 #force C++17
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-
+#target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
+target_compile_options(${PROJECT_NAME} PRIVATE ${TORCH_CXX_FLAGS})
 # Include directories = where to find header files
 target_include_directories(${PROJECT_NAME} PRIVATE
+
   ${OpenCV_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 #link libraries 
 target_link_libraries(${PROJECT_NAME} 
+  rclcpp::rclcpp
   ${OpenCV_LIBRARIES}
   ${TORCH_LIBRARIES}
 )
