@@ -197,7 +197,6 @@ void SPDetector::detect(cv::Mat &img, bool cuda)
     bool use_cuda = cuda && torch::cuda::is_available();
     torch::DeviceType device_type;
 
-    std::cout << "CUDA available: " << (torch::cuda::is_available() ? "true" : "false") << std::endl;
     if (use_cuda)
         device_type = torch::kCUDA;
     else
@@ -253,6 +252,8 @@ void SPDetector::getKeyPoints(float threshold, int iniX, int maxX, int iniY, int
 
 void SPDetector::computeDescriptors(const std::vector<cv::KeyPoint> &keypoints, cv::Mat &descriptors)
 {
+    
+
     cv::Mat kpt_mat(keypoints.size(), 2, CV_32F);  // [n_keypoints, 2]  (y, x)
 
     for (size_t i = 0; i < keypoints.size(); i++) {
@@ -260,11 +261,15 @@ void SPDetector::computeDescriptors(const std::vector<cv::KeyPoint> &keypoints, 
         kpt_mat.at<float>(i, 1) = (float)keypoints[i].pt.x;
     }
 
-    auto fkpts = torch::from_blob(kpt_mat.data, {keypoints.size(), 2}, torch::kFloat);
+    auto device = mDesc.device();
+    auto fkpts = torch::from_blob(kpt_mat.data, {(long)keypoints.size(), 2}, torch::kFloat32)
+                .clone()
+                .to(device);
+    auto grid = torch::zeros({1, 1, fkpts.size(0), 2}, torch::TensorOptions().device(device));
 
-    auto grid = torch::zeros({1, 1, fkpts.size(0), 2});  // [1, 1, n_keypoints, 2]
     grid[0][0].slice(1, 0, 1) = 2.0 * fkpts.slice(1, 1, 2) / mProb.size(1) - 1;  // x
     grid[0][0].slice(1, 1, 2) = 2.0 * fkpts.slice(1, 0, 1) / mProb.size(0) - 1;  // y
+
 
     // mode=0 (bilinear), padding_mode=0 (zeros), align_corners=false
     auto desc = torch::grid_sampler(mDesc, grid, 0, 0,false);  // [1, 256, 1, n_keypoints]

@@ -20,11 +20,12 @@ windows:
         # - ros2 run usb_cam usb_cam_node_exe --ros-args -r image_raw:=/camera/image
 
   - superpoint:
-    layout: tiled
-    panes:
-      - ros2 run superpoint_test superpoint_test --ros-args -p weights_path:=/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin -p image_topic:=camera/image -p threshold:=0.015 -p nms:=true -p use_cuda:=true -p image_size:="[160,120]"
+      layout: tiled
+      panes:
+        - 
+          - source ../install/setup.bash 
+          - ros2 run superpoint_test superpoint_test --ros-args -p weights_path:=/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin -p image_topic:=camera/image -p threshold:=0.015 -p nms:=true -p use_cuda:=true -p image_size:="[160,120]"
 
-      #source ../install/setup.bash &&
   - rviz:
       layout: tiled
       panes:
