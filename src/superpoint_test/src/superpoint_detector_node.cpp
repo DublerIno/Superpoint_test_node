@@ -128,6 +128,7 @@ void SuperPointDetectorNode::initialize()
 
   // ---- detector ----
   detector_ = std::make_unique<ORB_SLAM2::SPDetector>(model_);
+  detector_->setDevice(device_);
 
   // ---- image transport ----
   image_transport::ImageTransport it(node_ptr);
@@ -177,8 +178,7 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
   try {
     const auto start = std::chrono::high_resolution_clock::now();
 
-    // NOTE: if your detect() moves model to device internally, that’s slower.
-    detector_->detect(gray, use_cuda_);
+    detector_->detect(gray);
 
     std::vector<cv::KeyPoint> kpts;
     detector_->getKeyPoints(

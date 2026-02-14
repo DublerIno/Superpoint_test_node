@@ -183,30 +183,32 @@ void NMS2(std::vector<cv::KeyPoint> det, cv::Mat conf, std::vector<cv::KeyPoint>
 
 //SuperPoint Detector class constructor
 //shared pointer to SuperPoint model
-SPDetector::SPDetector(std::shared_ptr<SuperPoint> _model) : model(_model) 
+SPDetector::SPDetector(std::shared_ptr<SuperPoint> model) : model_(std::move(model)) {}
+
+void SPDetector::setDevice(const torch::Device& device)
 {
+  device_ = device;
+  model_->to(device_);
+  model_->eval();
 }
 
 //forward pass to get point heatmap and descriptor tensors
-void SPDetector::detect(cv::Mat &img, bool cuda)
+void SPDetector::detect(cv::Mat &img)
 {
-    auto x = torch::from_blob(img.clone().data, {1, 1, img.rows, img.cols}, torch::kByte);
-    x = x.to(torch::kFloat) / 255;
+   // input must be contiguous; clone() ensures that
+    auto x = torch::from_blob(img.clone().data,
+                                {1, 1, img.rows, img.cols},
+                                torch::TensorOptions().dtype(torch::kUInt8));
 
-    //Device selection:
-    bool use_cuda = cuda && torch::cuda::is_available();
-    torch::DeviceType device_type;
-
-    if (use_cuda)
-        device_type = torch::kCUDA;
-    else
-        device_type = torch::kCPU;
-    torch::Device device(device_type);
+    x = x.to(torch::kFloat32).div_(255.0f);
+    x = x.to(device_);
 
     //forward pass
-    model->to(device);
-    x = x.set_requires_grad(false);
-    auto out = model->forward(x.to(device));
+    //pry se to zmenilo
+    torch::NoGradGuard no_grad;   // important: inference mode
+    auto out = model_->forward(x);
+    
+    //auto out = model->forward(x.to(device));
 
     //stores as class members
     mProb = out[0].squeeze(0);  // [H, W]
