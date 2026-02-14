@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    weights_path: "/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin"
+    image_topic: "/camera/image"
+    threshold: 0.015
+    do_nms: true
+    use_cuda: false

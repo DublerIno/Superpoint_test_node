@@ -24,13 +24,14 @@ windows:
       panes:
         - 
           - source ../install/setup.bash 
-          - ros2 run superpoint_test superpoint_test --ros-args -p weights_path:=/home/dublerino/ws_superpoint/src/superpoint_test/superpoint_model_weights.bin -p image_topic:=camera/image -p threshold:=0.015 -p nms:=true -p use_cuda:=true -p image_size:="[160,120]"
+          - ros2 run superpoint_test superpoint_test --ros-args --params-file /home/dublerino/ws_superpoint/src/superpoint_test/config/superpoint.yaml
 
   - rviz:
       layout: tiled
       panes:
         #ros2 run rviz2 rviz2 -d ./superpoint_test.rviz --ros-args -p use_sim_time:=false
         - ros2 run rviz2 rviz2 -d ./superpoint_test.rviz 
+        
   - cmd_line:
       layout: tiled
       panes:
