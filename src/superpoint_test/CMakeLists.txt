@@ -1,76 +1,68 @@
 cmake_minimum_required(VERSION 3.8)
 project(superpoint_test)
 
+# ---------- compile options ----------
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# C++ standard (pick 17 unless you need 20)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# ---------- packages ----------
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(mrs_lib REQUIRED)
 
-set(DEPENDENCIES
-  rclcpp
-  rclcpp_components
-  sensor_msgs
-  cv_bridge
-  image_transport
-  OpenCV
-  mrs_lib
-)
-
-foreach(DEP IN LISTS DEPENDENCIES)
-  find_package(${DEP} REQUIRED)
-endforeach()
-
-# --- Torch ---
+# ---------- Torch ----------
 set(CMAKE_PREFIX_PATH "/opt/libtorch" ${CMAKE_PREFIX_PATH})
 find_package(Torch REQUIRED)
 
-include_directories(
-  include
-  ${OpenCV_INCLUDE_DIRS}
-  ${mrs_lib_INCLUDE_DIRS}
-)
-
-
-# Build as component library 
-# not add_executable!
-add_library(${PROJECT_NAME}_node SHARED
+# ---------- target ----------
+add_executable(${PROJECT_NAME}
   src/superpoint_detector_node.cpp
   src/SuperPoint.cpp
 )
 
-target_compile_options(${PROJECT_NAME}_node PRIVATE ${TORCH_CXX_FLAGS})
+target_compile_options(${PROJECT_NAME} PRIVATE ${TORCH_CXX_FLAGS})
 
-target_link_libraries(${PROJECT_NAME}_node
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${OpenCV_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
   ${TORCH_LIBRARIES}
 )
 
-ament_target_dependencies(${PROJECT_NAME}_node
-  ${DEPENDENCIES}
+ament_target_dependencies(${PROJECT_NAME}
+  rclcpp
+  sensor_msgs
+  cv_bridge
+  image_transport
+  mrs_lib
 )
 
-# Register component + generate runnable executable
-rclcpp_components_register_nodes(${PROJECT_NAME}_node
-  PLUGIN "superpoint_test::SuperPointDetectorNode"
-  EXECUTABLE ${PROJECT_NAME}
-)
-
-# Torch runtime lookup (optional but handy)
-set_target_properties(${PROJECT_NAME}_node PROPERTIES
+# Helps runtime find torch libs without exporting LD_LIBRARY_PATH every time
+set_target_properties(${PROJECT_NAME} PROPERTIES
   BUILD_RPATH "${TORCH_INSTALL_PREFIX}/lib"
   INSTALL_RPATH "${TORCH_INSTALL_PREFIX}/lib"
 )
 
-# Install like MRS packages do
-install(TARGETS ${PROJECT_NAME}_node
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+# ---------- install ----------
+install(TARGETS ${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
+# Install config files if you have them
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
 
-ament_export_libraries(${PROJECT_NAME}_node)
-ament_export_dependencies(${DEPENDENCIES})
 ament_package()

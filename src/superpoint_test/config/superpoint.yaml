@@ -4,4 +4,9 @@
     image_topic: "/camera/image"
     threshold: 0.015
     do_nms: true
-    use_cuda: false
+    use_cuda: true
+    image_size: [160, 120]   # width, height
+
+      
+
+# 640 x 360 for my webcam
