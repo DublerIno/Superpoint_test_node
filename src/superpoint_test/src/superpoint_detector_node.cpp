@@ -148,6 +148,7 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
   if (!is_initialized_.load()) {
     return;
   }
+  const auto start1 = std::chrono::high_resolution_clock::now();
 
   const std::string color_encoding = "bgr8";
 
@@ -176,27 +177,19 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
   }
 
   try {
-    const auto start = std::chrono::high_resolution_clock::now();
+    const auto start2 = std::chrono::high_resolution_clock::now();
 
+    //run forward pass
     detector_->detect(gray);
 
+    const auto end1 = std::chrono::high_resolution_clock::now();
+
+    //get keypoint from propabilities
     std::vector<cv::KeyPoint> kpts;
-    detector_->getKeyPoints(
-      static_cast<float>(threshold_),
-      0, gray.cols, 0, gray.rows,
-      kpts,
-      do_nms_);
+    detector_->getKeyPoints(static_cast<float>(threshold_), 0, gray.cols, 0, gray.rows, kpts, do_nms_);
 
     cv::Mat desc;
     detector_->computeDescriptors(kpts, desc);
-
-    const auto end = std::chrono::high_resolution_clock::now();
-    const double ms = std::chrono::duration<double, std::milli>(end - start).count();
-
-    RCLCPP_INFO(get_logger(), "detect and getkeypoint -  %zu keypoints in %.1f ms",
-        kpts.size(),
-        std::chrono::duration<double, std::milli>(end - start).count()
-      );
       
     /*
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
@@ -206,9 +199,10 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
 
     // visualization
     cv::Mat vis;
+    int radius = 1;
     cv::cvtColor(gray, vis, cv::COLOR_GRAY2BGR);
     for (const auto & kp : kpts) {
-      cv::circle(vis, kp.pt, 2, cv::Scalar(0, 255, 0), -1);
+      cv::circle(vis, kp.pt, radius, cv::Scalar(0, 255, 0), -1);
     }
 
     cv_bridge::CvImage out;
@@ -217,6 +211,14 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
     out.image = vis;
 
     pub_debug_.publish(out.toImageMsg());
+
+    const auto end2 = std::chrono::high_resolution_clock::now();
+
+    const double pre_time = std::chrono::duration<double, std::milli>(start2 - start1).count(); // inital image proccess time
+    const double net_time = std::chrono::duration<double, std::milli>(end1 - start2).count(); //sp detect time
+    const double total_time = std::chrono::duration<double, std::milli>(end2 - start1).count(); //whole onImage callback
+    RCLCPP_INFO(get_logger(), "detect and getkeypoint -  %zu keypoints.Pre timel %.1f; forward pass time: %.1f ms; total:  %.1f ms", kpts.size(), pre_time, net_time, total_time);
+
 
   } catch (const c10::Error & e) {
     RCLCPP_ERROR(this->get_logger(), "SuperPoint torch error: %s", e.what());
