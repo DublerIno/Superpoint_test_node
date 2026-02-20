@@ -49,6 +49,9 @@ ament_target_dependencies(${PROJECT_NAME}
   mrs_lib
 )
 
+#enforece optimization
+#add_compile_options("-O3")
+
 # Helps runtime find torch libs without exporting LD_LIBRARY_PATH every time
 set_target_properties(${PROJECT_NAME} PROPERTIES
   BUILD_RPATH "${TORCH_INSTALL_PREFIX}/lib"

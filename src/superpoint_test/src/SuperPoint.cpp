@@ -217,37 +217,53 @@ void SPDetector::detect(cv::Mat &img)
 }
 
 //Get keypoints from probability heatmap and optional NMS
-void SPDetector::getKeyPoints(float threshold, int iniX, int maxX, int iniY, int maxY, std::vector<cv::KeyPoint> &keypoints, bool nms)
+// Get keypoints from probability heatmap and optional NMS (faster: no per-point .item())
+void SPDetector::getKeyPoints(float threshold,
+                              int iniX, int maxX, int iniY, int maxY,
+                              std::vector<cv::KeyPoint> &keypoints,
+                              bool nms)
 {
-    auto prob = mProb.slice(0, iniY, maxY).slice(1, iniX, maxX);  // [h, w]
-    auto kpts = (prob > threshold);
-    kpts = torch::nonzero(kpts);  // [n_keypoints, 2]  (y, x)
+    // ROI [h,w]
+    auto prob_roi = mProb.slice(0, iniY, maxY).slice(1, iniX, maxX);
+
+    // Find (y,x) where prob > threshold
+    auto kpts = torch::nonzero(prob_roi > threshold); // [N,2] (y,x)
+
+    // Move once to CPU + make contiguous for fast access
+    auto prob_cpu = prob_roi.to(torch::kCPU).contiguous();
+    auto kpts_cpu = kpts.to(torch::kCPU).contiguous();
+
+    // Accessors (fast, no sync)
+    auto prob_acc = prob_cpu.accessor<float, 2>();
+    auto kpts_acc = kpts_cpu.accessor<long, 2>();
 
     std::vector<cv::KeyPoint> keypoints_no_nms;
-    for (int i = 0; i < kpts.size(0); i++) {
-        float response = prob[kpts[i][0]][kpts[i][1]].item<float>();
-        keypoints_no_nms.push_back(cv::KeyPoint(kpts[i][1].item<float>(), kpts[i][0].item<float>(), 8, -1, response));
+    keypoints_no_nms.reserve((size_t)kpts_cpu.size(0));
+
+    for (int i = 0; i < kpts_cpu.size(0); i++) {
+        int y = (int)kpts_acc[i][0];
+        int x = (int)kpts_acc[i][1];
+        float response = prob_acc[y][x];
+
+        keypoints_no_nms.emplace_back((float)x, (float)y, 8.f, -1.f, response);
     }
 
     if (nms) {
-        cv::Mat conf(keypoints_no_nms.size(), 1, CV_32F);
-        for (size_t i = 0; i < keypoints_no_nms.size(); i++) {
-            int x = keypoints_no_nms[i].pt.x;
-            int y = keypoints_no_nms[i].pt.y;
-            conf.at<float>(i, 0) = prob[y][x].item<float>();
+        cv::Mat conf((int)keypoints_no_nms.size(), 1, CV_32F);
+        for (int i = 0; i < (int)keypoints_no_nms.size(); i++) {
+            int x = (int)keypoints_no_nms[i].pt.x;
+            int y = (int)keypoints_no_nms[i].pt.y;
+            conf.at<float>(i, 0) = prob_acc[y][x]; // no .item()
         }
-
-        // cv::Mat descriptors;
 
         int border = 0;
         int dist_thresh = 4;
         int height = maxY - iniY;
-        int width = maxX - iniX;
+        int width  = maxX - iniX;
 
         NMS2(keypoints_no_nms, conf, keypoints, border, dist_thresh, width, height);
-    }
-    else {
-        keypoints = keypoints_no_nms;
+    } else {
+        keypoints = std::move(keypoints_no_nms);
     }
 }
 

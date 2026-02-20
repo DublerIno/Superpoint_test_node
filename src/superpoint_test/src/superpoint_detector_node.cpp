@@ -217,7 +217,7 @@ void SuperPointDetectorNode::onImage(const sensor_msgs::msg::Image::ConstSharedP
     const double pre_time = std::chrono::duration<double, std::milli>(start2 - start1).count(); // inital image proccess time
     const double net_time = std::chrono::duration<double, std::milli>(end1 - start2).count(); //sp detect time
     const double total_time = std::chrono::duration<double, std::milli>(end2 - start1).count(); //whole onImage callback
-    RCLCPP_INFO(get_logger(), "detect and getkeypoint -  %zu keypoints.Pre timel %.1f; forward pass time: %.1f ms; total:  %.1f ms", kpts.size(), pre_time, net_time, total_time);
+    RCLCPP_INFO(get_logger(), "GetKeypoints.Size -  %zu keypoints.Pre timel %.1f; forward pass time: %.1f ms; total:  %.1f ms", kpts.size(), pre_time, net_time, total_time);
 
 
   } catch (const c10::Error & e) {
