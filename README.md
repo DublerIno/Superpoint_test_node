@@ -1,4 +1,4 @@
-# Superpoint_test_node
+# Superpoint ROS2 testing node
 
 test for superpoint running as ros2 node
 # build
@@ -11,4 +11,4 @@ tested on:
 - `export CUDA_HOME=/usr/local/cuda-12.8`
 - `export PATH=$CUDA_HOME/bin:$PATH`
 
-
+disclaimer - had to convert weights from MagicLeap PyTorch implementation to use with libtorch, but it seems it now doesn't give correct descriptors  
